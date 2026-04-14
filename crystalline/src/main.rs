@@ -4,13 +4,13 @@ use crystalline::battle::{Action, BattleState, Side, Team};
 use crystalline::pets::load_pets_dir;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let pets_dir = pets_dir_from_args()?;
-    let battle = sample_battle(&pets_dir)?;
+    let (pets_dir, moves_dir) = data_dirs_from_args()?;
+    let battle = sample_battle(&pets_dir, &moves_dir)?;
     let mut battle = battle;
 
     let outcome = battle.resolve_turn([
-        Action::UseSkill { skill_index: 1 },
-        Action::UseSkill { skill_index: 0 },
+        Action::UseMove { move_index: 1 },
+        Action::UseMove { move_index: 0 },
     ])?;
 
     println!("turn {} outcome:", battle.turn);
@@ -21,15 +21,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn pets_dir_from_args() -> Result<PathBuf, Box<dyn std::error::Error>> {
-    std::env::args_os()
-        .nth(1)
+fn data_dirs_from_args() -> Result<(PathBuf, PathBuf), Box<dyn std::error::Error>> {
+    let mut args = std::env::args_os().skip(1);
+    let pets_dir = args
+        .next()
         .map(PathBuf::from)
-        .ok_or_else(|| "usage: cargo run -- <pets-dir>".into())
+        .ok_or_else(|| "usage: cargo run -- <pets-dir> <moves-dir>".to_string())?;
+    let moves_dir = args
+        .next()
+        .map(PathBuf::from)
+        .ok_or_else(|| "usage: cargo run -- <pets-dir> <moves-dir>".to_string())?;
+    Ok((pets_dir, moves_dir))
 }
 
-fn sample_battle(pets_dir: &Path) -> Result<BattleState, Box<dyn std::error::Error>> {
-    let pets = load_pets_dir(pets_dir)?;
+fn sample_battle(
+    pets_dir: &Path,
+    moves_dir: &Path,
+) -> Result<BattleState, Box<dyn std::error::Error>> {
+    let pets = load_pets_dir(pets_dir, moves_dir)?;
     let firecub = pets
         .iter()
         .find(|pet| pet.id == "firecub")

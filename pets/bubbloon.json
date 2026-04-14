@@ -7,27 +7,5 @@
     "defense": 7,
     "speed": 9
   },
-  "current_hp": 42,
-  "skills": [
-    {
-      "id": "bubble_burst",
-      "name": "Bubble Burst",
-      "priority": 0,
-      "effect": {
-        "Damage": {
-          "power": 9
-        }
-      }
-    },
-    {
-      "id": "tidal_peck",
-      "name": "Tidal Peck",
-      "priority": 1,
-      "effect": {
-        "Damage": {
-          "power": 6
-        }
-      }
-    }
-  ]
+  "move_ids": ["bubble_burst", "quick_dash"]
 }

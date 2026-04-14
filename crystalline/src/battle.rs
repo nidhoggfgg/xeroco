@@ -11,16 +11,16 @@ pub struct Stats {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum SkillEffect {
+pub enum MoveEffect {
     Damage { power: i32 },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Skill {
+pub struct Move {
     pub id: String,
     pub name: String,
     pub priority: i8,
-    pub effect: SkillEffect,
+    pub effect: MoveEffect,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -29,7 +29,7 @@ pub struct Pet {
     pub name: String,
     pub stats: Stats,
     pub current_hp: i32,
-    pub skills: Vec<Skill>,
+    pub moves: Vec<Move>,
 }
 
 impl Pet {
@@ -37,12 +37,12 @@ impl Pet {
         id: impl Into<String>,
         name: impl Into<String>,
         stats: Stats,
-        skills: Vec<Skill>,
+        moves: Vec<Move>,
     ) -> Result<Self, BattleError> {
-        if skills.is_empty() || skills.len() > 4 {
+        if moves.is_empty() || moves.len() > 4 {
             return Err(BattleError::InvalidPet(format!(
-                "pet must have between 1 and 4 skills, got {}",
-                skills.len()
+                "pet must have between 1 and 4 moves, got {}",
+                moves.len()
             )));
         }
 
@@ -51,7 +51,7 @@ impl Pet {
             name: name.into(),
             current_hp: stats.max_hp,
             stats,
-            skills,
+            moves,
         })
     }
 
@@ -116,7 +116,7 @@ impl Side {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Action {
-    UseSkill { skill_index: usize },
+    UseMove { move_index: usize },
     Switch { target_index: usize },
     Pass,
 }
@@ -130,10 +130,10 @@ pub enum TurnEvent {
         side: usize,
         pet_name: String,
     },
-    SkillUsed {
+    MoveUsed {
         side: usize,
         pet_name: String,
-        skill_name: String,
+        move_name: String,
     },
     DamageDealt {
         source_side: usize,
@@ -271,15 +271,15 @@ impl BattleState {
         let active = team.active_pet();
 
         match action {
-            Action::UseSkill { skill_index } => {
+            Action::UseMove { move_index } => {
                 if active.is_fainted() {
                     return Err(BattleError::InvalidAction(format!(
                         "side {side} cannot act with a fainted pet"
                     )));
                 }
-                if *skill_index >= active.skills.len() {
+                if *move_index >= active.moves.len() {
                     return Err(BattleError::InvalidAction(format!(
-                        "side {side} selected invalid skill index {skill_index}"
+                        "side {side} selected invalid move index {move_index}"
                     )));
                 }
             }
@@ -308,8 +308,8 @@ impl BattleState {
 
     fn action_priority(&self, side: usize, action: &Action) -> Result<i8, BattleError> {
         let priority = match action {
-            Action::UseSkill { skill_index } => {
-                self.sides[side].team.active_pet().skills[*skill_index].priority
+            Action::UseMove { move_index } => {
+                self.sides[side].team.active_pet().moves[*move_index].priority
             }
             Action::Switch { .. } => 6,
             Action::Pass => i8::MIN,
@@ -324,7 +324,7 @@ impl BattleState {
         events: &mut Vec<TurnEvent>,
     ) -> Result<(), BattleError> {
         match action {
-            Action::UseSkill { skill_index } => self.apply_skill(side, skill_index, events),
+            Action::UseMove { move_index } => self.apply_move(side, move_index, events),
             Action::Switch { target_index } => {
                 self.switch_active(side, target_index, events);
                 Ok(())
@@ -339,25 +339,25 @@ impl BattleState {
         }
     }
 
-    fn apply_skill(
+    fn apply_move(
         &mut self,
         source_side: usize,
-        skill_index: usize,
+        move_index: usize,
         events: &mut Vec<TurnEvent>,
     ) -> Result<(), BattleError> {
         let target_side = 1 - source_side;
         let source_pet = self.sides[source_side].team.active_pet().clone();
         let target_pet = self.sides[target_side].team.active_pet().clone();
-        let skill = source_pet.skills[skill_index].clone();
+        let chosen_move = source_pet.moves[move_index].clone();
 
-        events.push(TurnEvent::SkillUsed {
+        events.push(TurnEvent::MoveUsed {
             side: source_side,
             pet_name: source_pet.name.clone(),
-            skill_name: skill.name.clone(),
+            move_name: chosen_move.name.clone(),
         });
 
-        match skill.effect {
-            SkillEffect::Damage { power } => {
+        match chosen_move.effect {
+            MoveEffect::Damage { power } => {
                 let damage = (power + source_pet.stats.attack - target_pet.stats.defense).max(1);
                 let defender = self.sides[target_side].team.active_pet_mut();
                 defender.current_hp = (defender.current_hp - damage).max(0);
@@ -430,21 +430,21 @@ impl BattleState {
 mod tests {
     use super::*;
 
-    fn strike() -> Skill {
-        Skill {
+    fn strike() -> Move {
+        Move {
             id: "strike".to_string(),
             name: "Strike".to_string(),
             priority: 0,
-            effect: SkillEffect::Damage { power: 10 },
+            effect: MoveEffect::Damage { power: 10 },
         }
     }
 
-    fn quick_strike() -> Skill {
-        Skill {
+    fn quick_strike() -> Move {
+        Move {
             id: "quick_strike".to_string(),
             name: "Quick Strike".to_string(),
             priority: 1,
-            effect: SkillEffect::Damage { power: 6 },
+            effect: MoveEffect::Damage { power: 6 },
         }
     }
 
@@ -471,14 +471,14 @@ mod tests {
 
         let outcome = battle
             .resolve_turn([
-                Action::UseSkill { skill_index: 1 },
-                Action::UseSkill { skill_index: 0 },
+                Action::UseMove { move_index: 1 },
+                Action::UseMove { move_index: 0 },
             ])
             .unwrap();
 
         assert!(matches!(
             outcome.events[1],
-            TurnEvent::SkillUsed { side: 0, .. }
+            TurnEvent::MoveUsed { side: 0, .. }
         ));
     }
 
@@ -490,14 +490,14 @@ mod tests {
 
         let outcome = battle
             .resolve_turn([
-                Action::UseSkill { skill_index: 0 },
-                Action::UseSkill { skill_index: 0 },
+                Action::UseMove { move_index: 0 },
+                Action::UseMove { move_index: 0 },
             ])
             .unwrap();
 
         assert!(matches!(
             outcome.events[1],
-            TurnEvent::SkillUsed { side: 0, .. }
+            TurnEvent::MoveUsed { side: 0, .. }
         ));
     }
 
@@ -514,8 +514,8 @@ mod tests {
 
         let outcome = battle
             .resolve_turn([
-                Action::UseSkill { skill_index: 0 },
-                Action::UseSkill { skill_index: 0 },
+                Action::UseMove { move_index: 0 },
+                Action::UseMove { move_index: 0 },
             ])
             .unwrap();
 

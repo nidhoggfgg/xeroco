@@ -1,0 +1,10 @@
+{
+  "id": "quick_dash",
+  "name": "Quick Dash",
+  "priority": 1,
+  "effect": {
+    "Damage": {
+      "power": 8
+    }
+  }
+}

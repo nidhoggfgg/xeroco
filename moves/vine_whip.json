@@ -1,0 +1,10 @@
+{
+  "id": "vine_whip",
+  "name": "Vine Whip",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 10
+    }
+  }
+}

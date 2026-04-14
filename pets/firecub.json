@@ -7,27 +7,5 @@
     "defense": 5,
     "speed": 12
   },
-  "current_hp": 35,
-  "skills": [
-    {
-      "id": "ember",
-      "name": "Ember",
-      "priority": 0,
-      "effect": {
-        "Damage": {
-          "power": 12
-        }
-      }
-    },
-    {
-      "id": "quick_attack",
-      "name": "Quick Attack",
-      "priority": 1,
-      "effect": {
-        "Damage": {
-          "power": 8
-        }
-      }
-    }
-  ]
+  "move_ids": ["ember", "quick_dash"]
 }

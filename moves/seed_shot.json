@@ -1,0 +1,10 @@
+{
+  "id": "seed_shot",
+  "name": "Seed Shot",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 7
+    }
+  }
+}

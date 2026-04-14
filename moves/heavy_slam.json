@@ -1,0 +1,10 @@
+{
+  "id": "heavy_slam",
+  "name": "Heavy Slam",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 11
+    }
+  }
+}

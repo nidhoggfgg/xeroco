@@ -1,0 +1,10 @@
+{
+  "id": "ember",
+  "name": "Ember",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 12
+    }
+  }
+}

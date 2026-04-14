@@ -1,0 +1,10 @@
+{
+  "id": "pebble_toss",
+  "name": "Pebble Toss",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 8
+    }
+  }
+}

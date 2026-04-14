@@ -1,0 +1,10 @@
+{
+  "id": "bubble_burst",
+  "name": "Bubble Burst",
+  "priority": 0,
+  "effect": {
+    "Damage": {
+      "power": 9
+    }
+  }
+}
