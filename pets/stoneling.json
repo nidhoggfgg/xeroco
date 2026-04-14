@@ -1,0 +1,33 @@
+{
+  "id": "stoneling",
+  "name": "Stoneling",
+  "stats": {
+    "max_hp": 48,
+    "attack": 8,
+    "defense": 10,
+    "speed": 4
+  },
+  "current_hp": 48,
+  "skills": [
+    {
+      "id": "pebble_toss",
+      "name": "Pebble Toss",
+      "priority": 0,
+      "effect": {
+        "Damage": {
+          "power": 8
+        }
+      }
+    },
+    {
+      "id": "heavy_slam",
+      "name": "Heavy Slam",
+      "priority": 0,
+      "effect": {
+        "Damage": {
+          "power": 11
+        }
+      }
+    }
+  ]
+}

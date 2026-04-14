@@ -1,0 +1,33 @@
+{
+  "id": "leafling",
+  "name": "Leafling",
+  "stats": {
+    "max_hp": 40,
+    "attack": 7,
+    "defense": 6,
+    "speed": 8
+  },
+  "current_hp": 40,
+  "skills": [
+    {
+      "id": "vine_whip",
+      "name": "Vine Whip",
+      "priority": 0,
+      "effect": {
+        "Damage": {
+          "power": 10
+        }
+      }
+    },
+    {
+      "id": "seed_shot",
+      "name": "Seed Shot",
+      "priority": 0,
+      "effect": {
+        "Damage": {
+          "power": 7
+        }
+      }
+    }
+  ]
+}
