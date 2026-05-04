@@ -1,6 +1,7 @@
 use std::path::Path;
 
 use crystalline::battle::{Action, BattleState, Side, Team};
+use crystalline::battle_adapter::BattleRosterBuilder;
 use crystalline::pets::{PetCatalog, bundled_nrc_bundle_dir};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -42,8 +43,15 @@ fn sample_battle(
     right_name: &str,
 ) -> Result<BattleState, Box<dyn std::error::Error>> {
     let catalog = PetCatalog::from_nrc_bundle(bundle_dir)?;
-    let left_pet = catalog.instantiate_by_name(left_name)?;
-    let right_pet = catalog.instantiate_by_name(right_name)?;
+    let builder = BattleRosterBuilder;
+    let left_species = catalog
+        .species_by_name(left_name)
+        .ok_or_else(|| crystalline::pets::PetSystemError::MissingSpecies(left_name.to_string()))?;
+    let right_species = catalog
+        .species_by_name(right_name)
+        .ok_or_else(|| crystalline::pets::PetSystemError::MissingSpecies(right_name.to_string()))?;
+    let left_pet = builder.build_pet_with_defaults(left_species)?;
+    let right_pet = builder.build_pet_with_defaults(right_species)?;
 
     let left = Side::new("Player A", Team::new(vec![left_pet])?);
     let right = Side::new("Player B", Team::new(vec![right_pet])?);

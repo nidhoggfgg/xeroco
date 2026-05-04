@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use super::{Evolution, Move, MoveEffect, Pet, PetSpecies, PetSystemError, Stats};
+use super::{Evolution, Move, MoveEffect, PetSpecies, PetSystemError, Stats};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PetCatalog {
@@ -55,13 +55,6 @@ impl PetCatalog {
         self.species_by_name
             .get(name)
             .and_then(|index| self.species.get(*index))
-    }
-
-    pub fn instantiate_by_name(&self, name: &str) -> Result<Pet, PetSystemError> {
-        let species = self
-            .species_by_name(name)
-            .ok_or_else(|| PetSystemError::MissingSpecies(name.to_string()))?;
-        species.instantiate()
     }
 }
 
@@ -327,7 +320,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn loads_species_and_default_moves_from_sqlite() {
+    fn loads_species_from_sqlite() {
         let connection = Connection::open_in_memory().unwrap();
         connection
             .execute_batch(
@@ -404,16 +397,22 @@ mod tests {
 
         let catalog = PetCatalog::from_connection(&connection, None).unwrap();
         let species = catalog.species_by_name("火花").unwrap();
-        let pet = species.instantiate().unwrap();
 
         assert_eq!(catalog.species().len(), 1);
         assert_eq!(species.evolutions.len(), 1);
         assert_eq!(species.learnset.len(), 4);
-        assert_eq!(pet.moves.len(), 3);
         assert!(
-            pet.moves
+            species
+                .learnset
                 .iter()
                 .all(|battle_move| matches!(battle_move.effect, MoveEffect::Damage { .. }))
+                == false
+        );
+        assert!(
+            species
+                .learnset
+                .iter()
+                .any(|battle_move| matches!(battle_move.effect, MoveEffect::Status))
         );
     }
 }

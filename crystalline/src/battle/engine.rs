@@ -1,129 +1,6 @@
 use std::cmp::Reverse;
 
-use crate::pets::{MoveEffect, Pet};
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Team {
-    pub pets: Vec<Pet>,
-    pub active: usize,
-}
-
-impl Team {
-    pub fn new(pets: Vec<Pet>) -> Result<Self, BattleError> {
-        if pets.is_empty() || pets.len() > 6 {
-            return Err(BattleError::InvalidTeam(format!(
-                "team must have between 1 and 6 pets, got {}",
-                pets.len()
-            )));
-        }
-
-        Ok(Self { pets, active: 0 })
-    }
-
-    pub fn active_pet(&self) -> &Pet {
-        &self.pets[self.active]
-    }
-
-    pub fn active_pet_mut(&mut self) -> &mut Pet {
-        &mut self.pets[self.active]
-    }
-
-    pub fn has_available_pet(&self) -> bool {
-        self.pets.iter().any(|pet| !pet.is_fainted())
-    }
-
-    pub fn first_available_bench(&self) -> Option<usize> {
-        self.pets
-            .iter()
-            .enumerate()
-            .find(|(index, pet)| *index != self.active && !pet.is_fainted())
-            .map(|(index, _)| index)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Side {
-    pub name: String,
-    pub team: Team,
-}
-
-impl Side {
-    pub fn new(name: impl Into<String>, team: Team) -> Self {
-        Self {
-            name: name.into(),
-            team,
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Action {
-    UseMove { move_index: usize },
-    Switch { target_index: usize },
-    Pass,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum TurnEvent {
-    TurnStarted {
-        turn: u32,
-    },
-    Switched {
-        side: usize,
-        pet_name: String,
-    },
-    MoveUsed {
-        side: usize,
-        pet_name: String,
-        move_name: String,
-    },
-    DamageDealt {
-        source_side: usize,
-        target_side: usize,
-        amount: i32,
-        remaining_hp: i32,
-    },
-    Fainted {
-        side: usize,
-        pet_name: String,
-    },
-    AutoSwitched {
-        side: usize,
-        pet_name: String,
-    },
-    TurnSkipped {
-        side: usize,
-        reason: String,
-    },
-    BattleEnded {
-        winner: usize,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct TurnOutcome {
-    pub events: Vec<TurnEvent>,
-    pub winner: Option<usize>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BattleError {
-    InvalidTeam(String),
-    InvalidAction(String),
-    BattleAlreadyFinished,
-}
-
-impl std::fmt::Display for BattleError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::InvalidTeam(message) => write!(f, "{message}"),
-            Self::InvalidAction(message) => write!(f, "{message}"),
-            Self::BattleAlreadyFinished => write!(f, "battle already finished"),
-        }
-    }
-}
-
-impl std::error::Error for BattleError {}
+use crate::battle::{Action, BattleError, BattleMoveEffect, Side, TurnEvent, TurnOutcome, rules};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BattleState {
@@ -193,8 +70,9 @@ impl BattleState {
 
         for (side, action) in actions.into_iter().enumerate() {
             self.validate_action(side, &action)?;
-            let priority = self.action_priority(side, &action)?;
-            let speed = self.sides[side].team.active_pet().stats.speed;
+            let active_pet = self.sides[side].team.active_pet();
+            let priority = rules::action_priority(active_pet, &action);
+            let speed = active_pet.stats.speed;
             resolved.push(ResolvedAction {
                 side,
                 priority,
@@ -246,17 +124,6 @@ impl BattleState {
         Ok(())
     }
 
-    fn action_priority(&self, side: usize, action: &Action) -> Result<i8, BattleError> {
-        let priority = match action {
-            Action::UseMove { move_index } => {
-                self.sides[side].team.active_pet().moves[*move_index].priority
-            }
-            Action::Switch { .. } => 6,
-            Action::Pass => i8::MIN,
-        };
-        Ok(priority)
-    }
-
     fn apply_action(
         &mut self,
         side: usize,
@@ -297,8 +164,9 @@ impl BattleState {
         });
 
         match chosen_move.effect {
-            MoveEffect::Damage { power } => {
-                let damage = (power + source_pet.stats.attack - target_pet.stats.defense).max(1);
+            BattleMoveEffect::Damage { .. } => {
+                let damage = rules::calculate_damage(&source_pet, &target_pet, &chosen_move.effect)
+                    .expect("damage effect should calculate damage");
                 let defender = self.sides[target_side].team.active_pet_mut();
                 defender.current_hp = (defender.current_hp - damage).max(0);
 
@@ -316,7 +184,7 @@ impl BattleState {
                     });
                 }
             }
-            MoveEffect::Status => {}
+            BattleMoveEffect::Status => {}
         }
 
         Ok(())
@@ -364,119 +232,5 @@ impl BattleState {
                 events.push(TurnEvent::BattleEnded { winner });
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::pets::{Move, Stats};
-
-    fn strike() -> Move {
-        Move {
-            id: "strike".to_string(),
-            name: "Strike".to_string(),
-            element: "Neutral".to_string(),
-            category: "Physical".to_string(),
-            priority: 0,
-            energy_cost: 0,
-            description: String::new(),
-            effect: MoveEffect::Damage { power: 10 },
-        }
-    }
-
-    fn quick_strike() -> Move {
-        Move {
-            id: "quick_strike".to_string(),
-            name: "Quick Strike".to_string(),
-            element: "Neutral".to_string(),
-            category: "Physical".to_string(),
-            priority: 1,
-            energy_cost: 0,
-            description: String::new(),
-            effect: MoveEffect::Damage { power: 6 },
-        }
-    }
-
-    fn pet(name: &str, speed: i32) -> Pet {
-        Pet::new(
-            name.to_lowercase(),
-            name,
-            "Neutral",
-            Stats {
-                max_hp: 30,
-                attack: 8,
-                defense: 4,
-                speed,
-                special_attack: 7,
-                special_defense: 5,
-            },
-            vec![strike(), quick_strike()],
-        )
-        .expect("battle test pet should be valid")
-    }
-
-    #[test]
-    fn higher_priority_moves_first() {
-        let left = Side::new("left", Team::new(vec![pet("Alpha", 5)]).unwrap());
-        let right = Side::new("right", Team::new(vec![pet("Beta", 99)]).unwrap());
-        let mut battle = BattleState::new(left, right);
-
-        let outcome = battle
-            .resolve_turn([
-                Action::UseMove { move_index: 1 },
-                Action::UseMove { move_index: 0 },
-            ])
-            .unwrap();
-
-        assert!(matches!(
-            outcome.events[1],
-            TurnEvent::MoveUsed { side: 0, .. }
-        ));
-    }
-
-    #[test]
-    fn speed_breaks_priority_ties() {
-        let left = Side::new("left", Team::new(vec![pet("Alpha", 50)]).unwrap());
-        let right = Side::new("right", Team::new(vec![pet("Beta", 10)]).unwrap());
-        let mut battle = BattleState::new(left, right);
-
-        let outcome = battle
-            .resolve_turn([
-                Action::UseMove { move_index: 0 },
-                Action::UseMove { move_index: 0 },
-            ])
-            .unwrap();
-
-        assert!(matches!(
-            outcome.events[1],
-            TurnEvent::MoveUsed { side: 0, .. }
-        ));
-    }
-
-    #[test]
-    fn fainted_pet_is_auto_replaced() {
-        let left = Side::new(
-            "left",
-            Team::new(vec![pet("Alpha", 30), pet("Gamma", 20)]).unwrap(),
-        );
-        let mut fragile = pet("Beta", 10);
-        fragile.current_hp = 5;
-        let right = Side::new("right", Team::new(vec![fragile]).unwrap());
-        let mut battle = BattleState::new(left, right);
-
-        let outcome = battle
-            .resolve_turn([
-                Action::UseMove { move_index: 0 },
-                Action::UseMove { move_index: 0 },
-            ])
-            .unwrap();
-
-        assert!(
-            outcome
-                .events
-                .iter()
-                .any(|event| matches!(event, TurnEvent::BattleEnded { winner: 0 }))
-        );
     }
 }

@@ -27,13 +27,3 @@ pub struct Move {
     pub description: String,
     pub effect: MoveEffect,
 }
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Pet {
-    pub id: String,
-    pub name: String,
-    pub element: String,
-    pub stats: Stats,
-    pub current_hp: i32,
-    pub moves: Vec<Move>,
-}

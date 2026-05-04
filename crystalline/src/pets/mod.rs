@@ -4,7 +4,7 @@ mod nrc;
 use std::fmt;
 use std::path::PathBuf;
 
-pub use model::{Move, MoveEffect, Pet, Stats};
+pub use model::{Move, MoveEffect, Stats};
 pub use nrc::PetCatalog;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -28,56 +28,6 @@ pub struct PetSpecies {
     pub stats: Stats,
     pub learnset: Vec<Move>,
     pub evolutions: Vec<Evolution>,
-}
-
-impl PetSpecies {
-    pub fn instantiate(&self) -> Result<Pet, PetSystemError> {
-        let moves = default_battle_moves(&self.learnset);
-        if moves.is_empty() {
-            return Err(PetSystemError::InvalidPet(format!(
-                "pokemon {} does not have any usable moves",
-                self.name
-            )));
-        }
-
-        Pet::new(
-            self.species_id.clone(),
-            self.name.clone(),
-            self.element.clone(),
-            self.stats.clone(),
-            moves,
-        )
-    }
-}
-
-impl Pet {
-    pub fn new(
-        id: impl Into<String>,
-        name: impl Into<String>,
-        element: impl Into<String>,
-        stats: Stats,
-        moves: Vec<Move>,
-    ) -> Result<Self, PetSystemError> {
-        if moves.is_empty() || moves.len() > 4 {
-            return Err(PetSystemError::InvalidPet(format!(
-                "pet must have between 1 and 4 moves, got {}",
-                moves.len()
-            )));
-        }
-
-        Ok(Self {
-            id: id.into(),
-            name: name.into(),
-            element: element.into(),
-            current_hp: stats.max_hp,
-            stats,
-            moves,
-        })
-    }
-
-    pub fn is_fainted(&self) -> bool {
-        self.current_hp <= 0
-    }
 }
 
 #[derive(Debug)]
@@ -118,19 +68,4 @@ pub fn bundled_nrc_bundle_dir() -> PathBuf {
         .join("..")
         .join("data")
         .join("nrc_pokemon_data_bundle")
-}
-
-fn default_battle_moves(learnset: &[Move]) -> Vec<Move> {
-    let mut damaging: Vec<Move> = learnset
-        .iter()
-        .filter(|battle_move| matches!(battle_move.effect, MoveEffect::Damage { .. }))
-        .take(4)
-        .cloned()
-        .collect();
-
-    if damaging.is_empty() {
-        damaging = learnset.iter().take(4).cloned().collect();
-    }
-
-    damaging
 }
