@@ -1,15 +1,16 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
 use crystalline::battle::{Action, BattleState, Side, Team};
-use crystalline::pets::load_pets_dir;
+use crystalline::pets::{PetCatalog, bundled_nrc_bundle_dir};
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let (pets_dir, moves_dir) = data_dirs_from_args()?;
-    let battle = sample_battle(&pets_dir, &moves_dir)?;
+    let (left_name, right_name) = args_from_cli();
+    let bundle_dir = bundled_nrc_bundle_dir();
+    let battle = sample_battle(&bundle_dir, &left_name, &right_name)?;
     let mut battle = battle;
 
     let outcome = battle.resolve_turn([
-        Action::UseMove { move_index: 1 },
+        Action::UseMove { move_index: 0 },
         Action::UseMove { move_index: 0 },
     ])?;
 
@@ -21,37 +22,31 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-fn data_dirs_from_args() -> Result<(PathBuf, PathBuf), Box<dyn std::error::Error>> {
+fn args_from_cli() -> (String, String) {
     let mut args = std::env::args_os().skip(1);
-    let pets_dir = args
+    let left_name = args
         .next()
-        .map(PathBuf::from)
-        .ok_or_else(|| "usage: cargo run -- <pets-dir> <moves-dir>".to_string())?;
-    let moves_dir = args
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "迪莫".to_string());
+    let right_name = args
         .next()
-        .map(PathBuf::from)
-        .ok_or_else(|| "usage: cargo run -- <pets-dir> <moves-dir>".to_string())?;
-    Ok((pets_dir, moves_dir))
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "火花".to_string());
+
+    (left_name, right_name)
 }
 
 fn sample_battle(
-    pets_dir: &Path,
-    moves_dir: &Path,
+    bundle_dir: &Path,
+    left_name: &str,
+    right_name: &str,
 ) -> Result<BattleState, Box<dyn std::error::Error>> {
-    let pets = load_pets_dir(pets_dir, moves_dir)?;
-    let firecub = pets
-        .iter()
-        .find(|pet| pet.id == "firecub")
-        .cloned()
-        .ok_or("missing firecub pet data")?;
-    let leafling = pets
-        .iter()
-        .find(|pet| pet.id == "leafling")
-        .cloned()
-        .ok_or("missing leafling pet data")?;
+    let catalog = PetCatalog::from_nrc_bundle(bundle_dir)?;
+    let left_pet = catalog.instantiate_by_name(left_name)?;
+    let right_pet = catalog.instantiate_by_name(right_name)?;
 
-    let left = Side::new("Player A", Team::new(vec![firecub])?);
-    let right = Side::new("Player B", Team::new(vec![leafling])?);
+    let left = Side::new("Player A", Team::new(vec![left_pet])?);
+    let right = Side::new("Player B", Team::new(vec![right_pet])?);
 
     Ok(BattleState::new(left, right))
 }

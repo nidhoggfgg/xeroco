@@ -1,64 +1,6 @@
 use std::cmp::Reverse;
 
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Stats {
-    pub max_hp: i32,
-    pub attack: i32,
-    pub defense: i32,
-    pub speed: i32,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MoveEffect {
-    Damage { power: i32 },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Move {
-    pub id: String,
-    pub name: String,
-    pub priority: i8,
-    pub effect: MoveEffect,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct Pet {
-    pub id: String,
-    pub name: String,
-    pub stats: Stats,
-    pub current_hp: i32,
-    pub moves: Vec<Move>,
-}
-
-impl Pet {
-    pub fn new(
-        id: impl Into<String>,
-        name: impl Into<String>,
-        stats: Stats,
-        moves: Vec<Move>,
-    ) -> Result<Self, BattleError> {
-        if moves.is_empty() || moves.len() > 4 {
-            return Err(BattleError::InvalidPet(format!(
-                "pet must have between 1 and 4 moves, got {}",
-                moves.len()
-            )));
-        }
-
-        Ok(Self {
-            id: id.into(),
-            name: name.into(),
-            current_hp: stats.max_hp,
-            stats,
-            moves,
-        })
-    }
-
-    pub fn is_fainted(&self) -> bool {
-        self.current_hp <= 0
-    }
-}
+use crate::pets::{MoveEffect, Pet};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Team {
@@ -167,7 +109,6 @@ pub struct TurnOutcome {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BattleError {
     InvalidTeam(String),
-    InvalidPet(String),
     InvalidAction(String),
     BattleAlreadyFinished,
 }
@@ -176,7 +117,6 @@ impl std::fmt::Display for BattleError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::InvalidTeam(message) => write!(f, "{message}"),
-            Self::InvalidPet(message) => write!(f, "{message}"),
             Self::InvalidAction(message) => write!(f, "{message}"),
             Self::BattleAlreadyFinished => write!(f, "battle already finished"),
         }
@@ -376,6 +316,7 @@ impl BattleState {
                     });
                 }
             }
+            MoveEffect::Status => {}
         }
 
         Ok(())
@@ -429,12 +370,17 @@ impl BattleState {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::pets::{Move, Stats};
 
     fn strike() -> Move {
         Move {
             id: "strike".to_string(),
             name: "Strike".to_string(),
+            element: "Neutral".to_string(),
+            category: "Physical".to_string(),
             priority: 0,
+            energy_cost: 0,
+            description: String::new(),
             effect: MoveEffect::Damage { power: 10 },
         }
     }
@@ -443,7 +389,11 @@ mod tests {
         Move {
             id: "quick_strike".to_string(),
             name: "Quick Strike".to_string(),
+            element: "Neutral".to_string(),
+            category: "Physical".to_string(),
             priority: 1,
+            energy_cost: 0,
+            description: String::new(),
             effect: MoveEffect::Damage { power: 6 },
         }
     }
@@ -452,15 +402,18 @@ mod tests {
         Pet::new(
             name.to_lowercase(),
             name,
+            "Neutral",
             Stats {
                 max_hp: 30,
                 attack: 8,
                 defense: 4,
                 speed,
+                special_attack: 7,
+                special_defense: 5,
             },
             vec![strike(), quick_strike()],
         )
-        .unwrap()
+        .expect("battle test pet should be valid")
     }
 
     #[test]

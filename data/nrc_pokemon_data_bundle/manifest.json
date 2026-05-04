@@ -1,0 +1,35 @@
+{
+  "bundle_name": "nrc_pokemon_data_bundle",
+  "generated_from_project": "NRC_AI",
+  "generated_on": "2026-05-05",
+  "database": {
+    "path": "db/nrc.db",
+    "tables": {
+      "pokemon": 461,
+      "skill": 491,
+      "pokemon_skill": 20433,
+      "evolution": 206
+    },
+    "skill_source": "bilibili"
+  },
+  "resources": {
+    "icons_path": "resources/icons",
+    "icon_file_count": 371,
+    "raw_files": [
+      "resources/spirit_evolution.csv",
+      "resources/pokemon_stats.xlsx"
+    ]
+  },
+  "docs": [
+    "README.md",
+    "docs/QUICKSTART.md",
+    "docs/DATA_MODEL.md",
+    "db/schema.sql",
+    "db/sample_queries.sql"
+  ],
+  "notes": [
+    "The SQLite database contains the main structured Pokemon, skill, learnset, and evolution data.",
+    "Battle effect execution rules are not bundled in SQLite.",
+    "Icons are file-based resources and are stored outside the database."
+  ]
+}
