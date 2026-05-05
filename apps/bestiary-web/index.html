@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Xeroco Bestiary</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Noto+Sans+SC:wght@400;500;700;900&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="page-shell">
+      <header class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">Xeroco Static Bestiary</p>
+          <h1>宠物图鉴静态站</h1>
+          <p class="hero-text">
+            直接消费 `bestiary` 导出的静态 JSON 与图标资源，无需后台服务。
+          </p>
+        </div>
+        <div class="hero-card">
+          <p class="hero-kicker">Offline Ready</p>
+          <dl class="hero-metrics">
+            <div>
+              <dt>资源模式</dt>
+              <dd>静态文件</dd>
+            </div>
+            <div>
+              <dt>数据入口</dt>
+              <dd>`generated/data`</dd>
+            </div>
+            <div>
+              <dt>页面能力</dt>
+              <dd>检索 / 筛选 / 详情</dd>
+            </div>
+          </dl>
+        </div>
+      </header>
+
+      <main class="workspace">
+        <section class="catalog-panel">
+          <div class="toolbar">
+            <label class="search-field">
+              <span>搜索宠物</span>
+              <input
+                id="search-input"
+                type="search"
+                placeholder="输入名称、属性、特性"
+                autocomplete="off"
+              />
+            </label>
+            <label class="filter-field">
+              <span>属性</span>
+              <select id="element-filter"></select>
+            </label>
+            <label class="filter-field">
+              <span>阶段</span>
+              <select id="stage-filter"></select>
+            </label>
+          </div>
+
+          <div class="results-head">
+            <p id="results-summary">正在加载图鉴数据…</p>
+          </div>
+
+          <div id="species-grid" class="species-grid" aria-live="polite"></div>
+        </section>
+
+        <aside class="detail-panel">
+          <div id="detail-state" class="detail-state">
+            选择左侧宠物后，这里会展示完整的技能、进化和数值信息。
+          </div>
+          <article id="detail-card" class="detail-card hidden"></article>
+        </aside>
+      </main>
+    </div>
+
+    <template id="species-card-template">
+      <button class="species-card" type="button">
+        <div class="species-card__icon">
+          <img alt="" loading="lazy" />
+        </div>
+        <div class="species-card__body">
+          <div class="species-card__head">
+            <h2></h2>
+            <span class="species-card__id"></span>
+          </div>
+          <p class="species-card__meta"></p>
+          <p class="species-card__ability"></p>
+          <dl class="species-card__stats"></dl>
+        </div>
+      </button>
+    </template>
+
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>
