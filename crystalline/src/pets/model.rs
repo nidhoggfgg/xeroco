@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -26,4 +28,27 @@ pub struct Move {
     pub energy_cost: i32,
     pub description: String,
     pub effect: MoveEffect,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Evolution {
+    pub to_name: String,
+    pub evo_level: Option<i32>,
+    pub condition: Option<String>,
+    pub chain_text: Option<String>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PetSpecies {
+    pub pokemon_id: i64,
+    pub species_id: String,
+    pub name: String,
+    pub element: String,
+    pub evo_stage: String,
+    pub ability: String,
+    pub spirit_no: Option<String>,
+    pub icon_path: Option<PathBuf>,
+    pub stats: Stats,
+    pub learnset: Vec<Move>,
+    pub evolutions: Vec<Evolution>,
 }

@@ -1,6 +1,6 @@
 use std::cmp::Reverse;
 
-use crate::battle::{Action, BattleError, BattleMoveEffect, Side, TurnEvent, TurnOutcome, rules};
+use crate::battle::{Action, BattleError, Side, TurnEvent, TurnOutcome, rules};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BattleState {
@@ -163,28 +163,43 @@ impl BattleState {
             move_name: chosen_move.name.clone(),
         });
 
-        match chosen_move.effect {
-            BattleMoveEffect::Damage { .. } => {
-                let damage = rules::calculate_damage(&source_pet, &target_pet, &chosen_move.effect)
-                    .expect("damage effect should calculate damage");
-                let defender = self.sides[target_side].team.active_pet_mut();
-                defender.current_hp = (defender.current_hp - damage).max(0);
-
-                events.push(TurnEvent::DamageDealt {
-                    source_side,
+        let consequences = rules::resolve_move(
+            source_side,
+            &source_pet,
+            &target_pet,
+            &chosen_move.semantics,
+        );
+        for consequence in consequences {
+            match consequence {
+                rules::MoveConsequence::Damage {
                     target_side,
-                    amount: damage,
-                    remaining_hp: defender.current_hp,
-                });
+                    amount,
+                } => {
+                    let defender = self.sides[target_side].team.active_pet_mut();
+                    defender.current_hp = (defender.current_hp - amount).max(0);
 
-                if defender.is_fainted() {
-                    events.push(TurnEvent::Fainted {
-                        side: target_side,
-                        pet_name: defender.name.clone(),
+                    events.push(TurnEvent::DamageDealt {
+                        source_side,
+                        target_side,
+                        amount,
+                        remaining_hp: defender.current_hp,
+                    });
+
+                    if defender.is_fainted() {
+                        events.push(TurnEvent::Fainted {
+                            side: target_side,
+                            pet_name: defender.name.clone(),
+                        });
+                    }
+                }
+                rules::MoveConsequence::NoEffect { reason } => {
+                    events.push(TurnEvent::MoveHadNoEffect {
+                        side: source_side,
+                        move_name: chosen_move.name.clone(),
+                        reason: reason.to_string(),
                     });
                 }
             }
-            BattleMoveEffect::Status => {}
         }
 
         Ok(())

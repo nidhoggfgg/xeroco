@@ -9,7 +9,9 @@ pub use action::Action;
 pub use engine::BattleState;
 pub use error::BattleError;
 pub use event::{TurnEvent, TurnOutcome};
-pub use state::{BattleMove, BattleMoveEffect, BattlePet, BattleStats, Side, Team};
+pub use state::{
+    BattleEffect, BattleMove, BattleMoveSemantics, BattlePet, BattleStats, BattleTarget, Side, Team,
+};
 
 #[cfg(test)]
 mod tests {
@@ -20,7 +22,12 @@ mod tests {
             id: "strike".to_string(),
             name: "Strike".to_string(),
             priority: 0,
-            effect: BattleMoveEffect::Damage { power: 10 },
+            semantics: BattleMoveSemantics {
+                effects: vec![BattleEffect::DealDamage {
+                    power: 10,
+                    target: BattleTarget::OpponentActive,
+                }],
+            },
         }
     }
 
@@ -29,7 +36,12 @@ mod tests {
             id: "quick_strike".to_string(),
             name: "Quick Strike".to_string(),
             priority: 1,
-            effect: BattleMoveEffect::Damage { power: 6 },
+            semantics: BattleMoveSemantics {
+                effects: vec![BattleEffect::DealDamage {
+                    power: 6,
+                    target: BattleTarget::OpponentActive,
+                }],
+            },
         }
     }
 
@@ -113,6 +125,34 @@ mod tests {
                 .events
                 .iter()
                 .any(|event| matches!(event, TurnEvent::BattleEnded { winner: 0 }))
+        );
+    }
+
+    #[test]
+    fn status_placeholder_produces_event() {
+        let mut alpha = pet("Alpha", 20);
+        alpha.moves = vec![BattleMove {
+            id: "focus".to_string(),
+            name: "Focus".to_string(),
+            priority: 0,
+            semantics: BattleMoveSemantics {
+                effects: vec![BattleEffect::StatusPlaceholder],
+            },
+        }];
+        let beta = pet("Beta", 10);
+        let left = Side::new("left", Team::new(vec![alpha]).unwrap());
+        let right = Side::new("right", Team::new(vec![beta]).unwrap());
+        let mut battle = BattleState::new(left, right);
+
+        let outcome = battle
+            .resolve_turn([Action::UseMove { move_index: 0 }, Action::Pass])
+            .unwrap();
+
+        assert!(
+            outcome
+                .events
+                .iter()
+                .any(|event| matches!(event, TurnEvent::MoveHadNoEffect { side: 0, .. }))
         );
     }
 }

@@ -11,9 +11,20 @@ pub struct BattleStats {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum BattleMoveEffect {
-    Damage { power: i32 },
-    Status,
+pub enum BattleTarget {
+    SelfActive,
+    OpponentActive,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum BattleEffect {
+    DealDamage { power: i32, target: BattleTarget },
+    StatusPlaceholder,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct BattleMoveSemantics {
+    pub effects: Vec<BattleEffect>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,7 +32,7 @@ pub struct BattleMove {
     pub id: String,
     pub name: String,
     pub priority: i8,
-    pub effect: BattleMoveEffect,
+    pub semantics: BattleMoveSemantics,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

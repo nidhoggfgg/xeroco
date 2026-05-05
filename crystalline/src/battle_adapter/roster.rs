@@ -1,5 +1,7 @@
-use crate::battle::{BattleMove, BattleMoveEffect, BattlePet, BattleStats};
-use crate::pets::{Move, MoveEffect, PetSpecies, PetSystemError};
+use crate::battle::BattlePet;
+use crate::pets::{Move, MoveEffect, PetSpecies};
+
+use super::{AdapterError, mapper, move_semantics};
 
 #[derive(Debug, Clone, Default)]
 pub struct BattleRosterBuilder;
@@ -23,46 +25,14 @@ impl BattleRosterBuilder {
             )));
         }
 
-        BattlePet::new(
-            species.species_id.clone(),
-            species.species_id.clone(),
-            species.name.clone(),
-            species.element.clone(),
-            BattleStats::from(&species.stats),
-            moves.into_iter().map(BattleMove::from).collect(),
+        mapper::map_species_to_battle_pet(
+            species,
+            moves.into_iter().map(move_semantics::map_move).collect(),
         )
-        .map_err(AdapterError::Battle)
     }
 
     pub fn build_pet_with_defaults(&self, species: &PetSpecies) -> Result<BattlePet, AdapterError> {
         self.build_pet(species, &[])
-    }
-}
-
-#[derive(Debug)]
-pub enum AdapterError {
-    MissingMove(String),
-    InvalidSelection(String),
-    Battle(crate::battle::BattleError),
-    PetSystem(PetSystemError),
-}
-
-impl std::fmt::Display for AdapterError {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::MissingMove(move_id) => write!(f, "missing move definition for {move_id}"),
-            Self::InvalidSelection(message) => write!(f, "{message}"),
-            Self::Battle(error) => write!(f, "{error}"),
-            Self::PetSystem(error) => write!(f, "{error}"),
-        }
-    }
-}
-
-impl std::error::Error for AdapterError {}
-
-impl From<PetSystemError> for AdapterError {
-    fn from(value: PetSystemError) -> Self {
-        Self::PetSystem(value)
     }
 }
 
@@ -104,43 +74,11 @@ fn select_moves(
         .collect()
 }
 
-impl From<&crate::pets::Stats> for BattleStats {
-    fn from(value: &crate::pets::Stats) -> Self {
-        Self {
-            max_hp: value.max_hp,
-            attack: value.attack,
-            defense: value.defense,
-            speed: value.speed,
-            special_attack: value.special_attack,
-            special_defense: value.special_defense,
-        }
-    }
-}
-
-impl From<Move> for BattleMove {
-    fn from(value: Move) -> Self {
-        Self {
-            id: value.id,
-            name: value.name,
-            priority: value.priority,
-            effect: BattleMoveEffect::from(value.effect),
-        }
-    }
-}
-
-impl From<MoveEffect> for BattleMoveEffect {
-    fn from(value: MoveEffect) -> Self {
-        match value {
-            MoveEffect::Damage { power } => Self::Damage { power },
-            MoveEffect::Status => Self::Status,
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pets::{MoveEffect, Stats};
+    use crate::battle::{BattleEffect, BattleTarget};
+    use crate::pets::Stats;
 
     fn species() -> PetSpecies {
         PetSpecies {
@@ -193,6 +131,13 @@ mod tests {
 
         assert_eq!(pet.moves.len(), 1);
         assert_eq!(pet.moves[0].id, "damage");
+        assert_eq!(
+            pet.moves[0].semantics.effects,
+            vec![BattleEffect::DealDamage {
+                power: 20,
+                target: BattleTarget::OpponentActive
+            }]
+        );
     }
 
     #[test]

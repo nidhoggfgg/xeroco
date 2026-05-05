@@ -1,0 +1,28 @@
+use crate::pets::PetSystemError;
+
+#[derive(Debug)]
+pub enum AdapterError {
+    MissingMove(String),
+    InvalidSelection(String),
+    Battle(crate::battle::BattleError),
+    PetSystem(PetSystemError),
+}
+
+impl std::fmt::Display for AdapterError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::MissingMove(move_id) => write!(f, "missing move definition for {move_id}"),
+            Self::InvalidSelection(message) => write!(f, "{message}"),
+            Self::Battle(error) => write!(f, "{error}"),
+            Self::PetSystem(error) => write!(f, "{error}"),
+        }
+    }
+}
+
+impl std::error::Error for AdapterError {}
+
+impl From<PetSystemError> for AdapterError {
+    fn from(value: PetSystemError) -> Self {
+        Self::PetSystem(value)
+    }
+}

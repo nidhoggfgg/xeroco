@@ -3,22 +3,21 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use super::{Evolution, Move, MoveEffect, PetSpecies, PetSystemError, Stats};
+use super::{Evolution, Move, MoveEffect, PetCatalog, PetSpecies, PetSystemError, Stats};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PetCatalog {
-    species: Vec<PetSpecies>,
-    species_by_name: HashMap<String, usize>,
-}
+#[derive(Debug, Clone, Copy, Default)]
+pub struct NrcRepository;
 
-impl PetCatalog {
-    pub fn from_nrc_bundle(bundle_root: impl AsRef<Path>) -> Result<Self, PetSystemError> {
+impl NrcRepository {
+    pub fn load_catalog_from_bundle(
+        bundle_root: impl AsRef<Path>,
+    ) -> Result<PetCatalog, PetSystemError> {
         let bundle_root = bundle_root.as_ref();
         let db_path = bundle_root.join("db").join("nrc.db");
         let icons_dir = bundle_root.join("resources").join("icons");
         let connection = Connection::open(&db_path)?;
 
-        Self::from_connection(
+        Self::load_catalog_from_connection(
             &connection,
             if icons_dir.is_dir() {
                 Some(icons_dir.as_path())
@@ -28,33 +27,14 @@ impl PetCatalog {
         )
     }
 
-    pub fn from_connection(
+    pub fn load_catalog_from_connection(
         connection: &Connection,
         icons_dir: Option<&Path>,
-    ) -> Result<Self, PetSystemError> {
+    ) -> Result<PetCatalog, PetSystemError> {
         let icon_index = build_icon_index(icons_dir)?;
         let evolutions = load_evolutions(connection)?;
         let species = load_species(connection, &icon_index, &evolutions)?;
-        let species_by_name = species
-            .iter()
-            .enumerate()
-            .map(|(index, species)| (species.name.clone(), index))
-            .collect();
-
-        Ok(Self {
-            species,
-            species_by_name,
-        })
-    }
-
-    pub fn species(&self) -> &[PetSpecies] {
-        &self.species
-    }
-
-    pub fn species_by_name(&self, name: &str) -> Option<&PetSpecies> {
-        self.species_by_name
-            .get(name)
-            .and_then(|index| self.species.get(*index))
+        Ok(PetCatalog::new(species))
     }
 }
 

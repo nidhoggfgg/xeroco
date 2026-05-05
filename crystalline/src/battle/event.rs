@@ -12,6 +12,11 @@ pub enum TurnEvent {
         pet_name: String,
         move_name: String,
     },
+    MoveHadNoEffect {
+        side: usize,
+        move_name: String,
+        reason: String,
+    },
     DamageDealt {
         source_side: usize,
         target_side: usize,
