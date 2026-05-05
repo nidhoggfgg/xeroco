@@ -1,8 +1,8 @@
 use std::path::Path;
 
-use crate::battle::{Action, BattleError, BattleState, Side, Team, TurnEvent};
-use crate::battle_adapter::{AdapterError, BattleRosterBuilder};
-use crate::pets::{PetCatalog, PetCatalogService, PetSystemError};
+use bestiary::{PetCatalog, PetCatalogService, BestiaryError, bundled_nrc_bundle_dir};
+use crystalline::battle::{Action, BattleError, BattleState, Side, Team, TurnEvent};
+use crystalline_bestiary_adapter::{AdapterError, BattleRosterBuilder};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct BattleDemoRequest {
@@ -71,7 +71,7 @@ impl BattleDemoService {
 
 #[derive(Debug)]
 pub enum AppError {
-    PetSystem(PetSystemError),
+    Bestiary(BestiaryError),
     Adapter(AdapterError),
     Battle(BattleError),
 }
@@ -79,7 +79,7 @@ pub enum AppError {
 impl std::fmt::Display for AppError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::PetSystem(error) => write!(f, "{error}"),
+            Self::Bestiary(error) => write!(f, "{error}"),
             Self::Adapter(error) => write!(f, "{error}"),
             Self::Battle(error) => write!(f, "{error}"),
         }
@@ -88,9 +88,9 @@ impl std::fmt::Display for AppError {
 
 impl std::error::Error for AppError {}
 
-impl From<PetSystemError> for AppError {
-    fn from(value: PetSystemError) -> Self {
-        Self::PetSystem(value)
+impl From<BestiaryError> for AppError {
+    fn from(value: BestiaryError) -> Self {
+        Self::Bestiary(value)
     }
 }
 
@@ -104,4 +104,39 @@ impl From<BattleError> for AppError {
     fn from(value: BattleError) -> Self {
         Self::Battle(value)
     }
+}
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let (left_name, right_name) = args_from_cli();
+    let bundle_dir = bundled_nrc_bundle_dir();
+    let service = BattleDemoService::default();
+    let report = service.run_turn(
+        &bundle_dir,
+        &BattleDemoRequest::new(left_name, right_name),
+        [
+            Action::UseMove { move_index: 0 },
+            Action::UseMove { move_index: 0 },
+        ],
+    )?;
+
+    println!("turn {} outcome:", report.turn);
+    for event in report.events {
+        println!("{event:?}");
+    }
+
+    Ok(())
+}
+
+fn args_from_cli() -> (String, String) {
+    let mut args = std::env::args_os().skip(1);
+    let left_name = args
+        .next()
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "迪莫".to_string());
+    let right_name = args
+        .next()
+        .map(|value| value.to_string_lossy().into_owned())
+        .unwrap_or_else(|| "火花".to_string());
+
+    (left_name, right_name)
 }

@@ -1,5 +1,5 @@
-use crate::battle::BattlePet;
-use crate::pets::{Move, MoveEffect, PetSpecies};
+use bestiary::{Move, MoveEffect, PetSpecies};
+use crystalline::battle::BattlePet;
 
 use super::{AdapterError, mapper, move_semantics};
 
@@ -76,9 +76,10 @@ fn select_moves(
 
 #[cfg(test)]
 mod tests {
+    use bestiary::Stats;
+    use crystalline::battle::{BattleEffect, BattleTarget};
+
     use super::*;
-    use crate::battle::{BattleEffect, BattleTarget};
-    use crate::pets::Stats;
 
     fn species() -> PetSpecies {
         PetSpecies {

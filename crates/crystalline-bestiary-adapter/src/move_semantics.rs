@@ -1,5 +1,5 @@
-use crate::battle::{BattleEffect, BattleMove, BattleMoveSemantics, BattleTarget};
-use crate::pets::{Move, MoveEffect};
+use bestiary::{Move, MoveEffect};
+use crystalline::battle::{BattleEffect, BattleMove, BattleMoveSemantics, BattleTarget};
 
 pub(crate) fn map_move(move_definition: Move) -> BattleMove {
     BattleMove {

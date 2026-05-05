@@ -1,11 +1,11 @@
-use crate::battle::{BattlePet, BattleStats};
-use crate::pets::{PetSpecies, Stats};
+use bestiary::{PetSpecies, Stats};
+use crystalline::battle::{BattleMove, BattlePet, BattleStats};
 
 use super::AdapterError;
 
 pub(crate) fn map_species_to_battle_pet(
     species: &PetSpecies,
-    moves: Vec<crate::battle::BattleMove>,
+    moves: Vec<BattleMove>,
 ) -> Result<BattlePet, AdapterError> {
     BattlePet::new(
         species.species_id.clone(),
@@ -15,7 +15,7 @@ pub(crate) fn map_species_to_battle_pet(
         map_stats(&species.stats),
         moves,
     )
-    .map_err(AdapterError::Battle)
+    .map_err(AdapterError::from)
 }
 
 fn map_stats(value: &Stats) -> BattleStats {

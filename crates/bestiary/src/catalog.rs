@@ -4,7 +4,7 @@ use std::path::Path;
 use rusqlite::Connection;
 
 use super::{
-    NrcRepository, PetCatalogService, PetQueryService, PetRepository, PetSpecies, PetSystemError,
+    BestiaryError, NrcRepository, PetCatalogService, PetQueryService, PetRepository, PetSpecies,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -34,14 +34,14 @@ impl PetCatalog {
         }
     }
 
-    pub fn from_nrc_bundle(bundle_root: impl AsRef<Path>) -> Result<Self, PetSystemError> {
+    pub fn from_nrc_bundle(bundle_root: impl AsRef<Path>) -> Result<Self, BestiaryError> {
         NrcRepository::load_catalog_from_bundle(bundle_root)
     }
 
     pub fn from_connection(
         connection: &Connection,
         icons_dir: Option<&Path>,
-    ) -> Result<Self, PetSystemError> {
+    ) -> Result<Self, BestiaryError> {
         NrcRepository::load_catalog_from_connection(connection, icons_dir)
     }
 
@@ -71,15 +71,15 @@ impl PetCatalog {
 }
 
 impl PetRepository for PetCatalog {
-    fn list_species(&self) -> Result<Vec<PetSpecies>, PetSystemError> {
+    fn list_species(&self) -> Result<Vec<PetSpecies>, BestiaryError> {
         Ok(self.species.clone())
     }
 
-    fn get_species(&self, species_id: &str) -> Result<Option<PetSpecies>, PetSystemError> {
+    fn get_species(&self, species_id: &str) -> Result<Option<PetSpecies>, BestiaryError> {
         Ok(self.species_by_id(species_id).cloned())
     }
 
-    fn find_species_by_name(&self, name: &str) -> Result<Option<PetSpecies>, PetSystemError> {
+    fn find_species_by_name(&self, name: &str) -> Result<Option<PetSpecies>, BestiaryError> {
         Ok(self.species_by_name(name).cloned())
     }
 }

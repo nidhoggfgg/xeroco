@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use super::{Evolution, Move, MoveEffect, PetCatalog, PetSpecies, PetSystemError, Stats};
+use super::{BestiaryError, Evolution, Move, MoveEffect, PetCatalog, PetSpecies, Stats};
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct NrcRepository;
@@ -11,7 +11,7 @@ pub struct NrcRepository;
 impl NrcRepository {
     pub fn load_catalog_from_bundle(
         bundle_root: impl AsRef<Path>,
-    ) -> Result<PetCatalog, PetSystemError> {
+    ) -> Result<PetCatalog, BestiaryError> {
         let bundle_root = bundle_root.as_ref();
         let db_path = bundle_root.join("db").join("nrc.db");
         let icons_dir = bundle_root.join("resources").join("icons");
@@ -30,7 +30,7 @@ impl NrcRepository {
     pub fn load_catalog_from_connection(
         connection: &Connection,
         icons_dir: Option<&Path>,
-    ) -> Result<PetCatalog, PetSystemError> {
+    ) -> Result<PetCatalog, BestiaryError> {
         let icon_index = build_icon_index(icons_dir)?;
         let evolutions = load_evolutions(connection)?;
         let species = load_species(connection, &icon_index, &evolutions)?;
@@ -42,7 +42,7 @@ fn load_species(
     connection: &Connection,
     icon_index: &HashMap<String, Vec<PathBuf>>,
     evolutions: &HashMap<String, Vec<Evolution>>,
-) -> Result<Vec<PetSpecies>, PetSystemError> {
+) -> Result<Vec<PetSpecies>, BestiaryError> {
     #[derive(Debug)]
     struct SpeciesRow {
         pokemon_id: i64,
@@ -181,7 +181,7 @@ fn load_species(
 
 fn load_evolutions(
     connection: &Connection,
-) -> Result<HashMap<String, Vec<Evolution>>, PetSystemError> {
+) -> Result<HashMap<String, Vec<Evolution>>, BestiaryError> {
     let mut statement = connection.prepare(
         r#"
         SELECT
@@ -218,7 +218,7 @@ fn load_evolutions(
 
 fn build_icon_index(
     icons_dir: Option<&Path>,
-) -> Result<HashMap<String, Vec<PathBuf>>, PetSystemError> {
+) -> Result<HashMap<String, Vec<PathBuf>>, BestiaryError> {
     let Some(icons_dir) = icons_dir else {
         return Ok(HashMap::new());
     };

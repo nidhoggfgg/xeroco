@@ -1,14 +1,14 @@
 use std::fmt;
 
 #[derive(Debug)]
-pub enum PetSystemError {
+pub enum BestiaryError {
     Io(std::io::Error),
     Sqlite(rusqlite::Error),
     MissingSpecies(String),
     InvalidPet(String),
 }
 
-impl fmt::Display for PetSystemError {
+impl fmt::Display for BestiaryError {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Io(error) => write!(f, "{error}"),
@@ -19,15 +19,15 @@ impl fmt::Display for PetSystemError {
     }
 }
 
-impl std::error::Error for PetSystemError {}
+impl std::error::Error for BestiaryError {}
 
-impl From<std::io::Error> for PetSystemError {
+impl From<std::io::Error> for BestiaryError {
     fn from(value: std::io::Error) -> Self {
         Self::Io(value)
     }
 }
 
-impl From<rusqlite::Error> for PetSystemError {
+impl From<rusqlite::Error> for BestiaryError {
     fn from(value: rusqlite::Error) -> Self {
         Self::Sqlite(value)
     }

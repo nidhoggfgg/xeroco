@@ -1,10 +1,10 @@
 use std::path::PathBuf;
 
-use super::{Evolution, Move, PetRepository, PetSpecies, PetSystemError};
+use super::{BestiaryError, Evolution, Move, PetRepository, PetSpecies};
 
 pub trait PetCatalogService {
-    fn species_by_name(&self, name: &str) -> Result<PetSpecies, PetSystemError>;
-    fn legal_moves_for_species(&self, species_id: &str) -> Result<Vec<Move>, PetSystemError>;
+    fn species_by_name(&self, name: &str) -> Result<PetSpecies, BestiaryError>;
+    fn legal_moves_for_species(&self, species_id: &str) -> Result<Vec<Move>, BestiaryError>;
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -22,17 +22,17 @@ impl<R> PetCatalogService for PetQueryService<'_, R>
 where
     R: PetRepository,
 {
-    fn species_by_name(&self, name: &str) -> Result<PetSpecies, PetSystemError> {
+    fn species_by_name(&self, name: &str) -> Result<PetSpecies, BestiaryError> {
         self.repository
             .find_species_by_name(name)?
-            .ok_or_else(|| PetSystemError::MissingSpecies(name.to_string()))
+            .ok_or_else(|| BestiaryError::MissingSpecies(name.to_string()))
     }
 
-    fn legal_moves_for_species(&self, species_id: &str) -> Result<Vec<Move>, PetSystemError> {
+    fn legal_moves_for_species(&self, species_id: &str) -> Result<Vec<Move>, BestiaryError> {
         self.repository
             .get_species(species_id)?
             .map(|species| species.learnset)
-            .ok_or_else(|| PetSystemError::MissingSpecies(species_id.to_string()))
+            .ok_or_else(|| BestiaryError::MissingSpecies(species_id.to_string()))
     }
 }
 
@@ -40,7 +40,7 @@ impl<R> PetQueryService<'_, R>
 where
     R: PetRepository,
 {
-    pub fn species_by_element(&self, element: &str) -> Result<Vec<PetSpecies>, PetSystemError> {
+    pub fn species_by_element(&self, element: &str) -> Result<Vec<PetSpecies>, BestiaryError> {
         Ok(self
             .repository
             .list_species()?
@@ -49,7 +49,7 @@ where
             .collect())
     }
 
-    pub fn species_by_stage(&self, evo_stage: &str) -> Result<Vec<PetSpecies>, PetSystemError> {
+    pub fn species_by_stage(&self, evo_stage: &str) -> Result<Vec<PetSpecies>, BestiaryError> {
         Ok(self
             .repository
             .list_species()?
@@ -61,28 +61,28 @@ where
     pub fn evolution_chain_for_species(
         &self,
         species_id: &str,
-    ) -> Result<Vec<Evolution>, PetSystemError> {
+    ) -> Result<Vec<Evolution>, BestiaryError> {
         self.repository
             .get_species(species_id)?
             .map(|species| species.evolutions)
-            .ok_or_else(|| PetSystemError::MissingSpecies(species_id.to_string()))
+            .ok_or_else(|| BestiaryError::MissingSpecies(species_id.to_string()))
     }
 
     pub fn icon_path_for_species(
         &self,
         species_id: &str,
-    ) -> Result<Option<PathBuf>, PetSystemError> {
+    ) -> Result<Option<PathBuf>, BestiaryError> {
         self.repository
             .get_species(species_id)?
             .map(|species| species.icon_path)
-            .ok_or_else(|| PetSystemError::MissingSpecies(species_id.to_string()))
+            .ok_or_else(|| BestiaryError::MissingSpecies(species_id.to_string()))
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::pets::{PetCatalog, Stats};
+    use crate::{MoveEffect, PetCatalog, Stats};
 
     fn catalog() -> PetCatalog {
         let alpha = PetSpecies {
@@ -110,7 +110,7 @@ mod tests {
                 priority: 0,
                 energy_cost: 0,
                 description: String::new(),
-                effect: crate::pets::MoveEffect::Damage { power: 20 },
+                effect: MoveEffect::Damage { power: 20 },
             }],
             evolutions: vec![Evolution {
                 to_name: "Beta".to_string(),
