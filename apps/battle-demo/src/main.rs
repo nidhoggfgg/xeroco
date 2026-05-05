@@ -1,6 +1,7 @@
 use std::path::Path;
 
-use bestiary::{PetCatalog, PetCatalogService, BestiaryError, bundled_nrc_bundle_dir};
+use bestiary::sources::nrc::{NrcCatalogLoader, bundled_bundle_dir};
+use bestiary::{BestiaryError, PetCatalogService};
 use crystalline::battle::{Action, BattleError, BattleState, Side, Team, TurnEvent};
 use crystalline_bestiary_adapter::{AdapterError, BattleRosterBuilder};
 
@@ -37,7 +38,7 @@ impl BattleDemoService {
         bundle_dir: &Path,
         request: &BattleDemoRequest,
     ) -> Result<BattleState, AppError> {
-        let catalog = PetCatalog::from_nrc_bundle(bundle_dir)?;
+        let catalog = NrcCatalogLoader::load_from_bundle(bundle_dir)?;
         let query = catalog.service();
         let left_species = query.species_by_name(&request.left_name)?;
         let right_species = query.species_by_name(&request.right_name)?;
@@ -108,7 +109,7 @@ impl From<BattleError> for AppError {
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (left_name, right_name) = args_from_cli();
-    let bundle_dir = bundled_nrc_bundle_dir();
+    let bundle_dir = bundled_bundle_dir();
     let service = BattleDemoService::default();
     let report = service.run_turn(
         &bundle_dir,

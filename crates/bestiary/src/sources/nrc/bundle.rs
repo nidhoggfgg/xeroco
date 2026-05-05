@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-pub fn bundled_nrc_bundle_dir() -> PathBuf {
+pub fn bundled_bundle_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("..")
         .join("..")

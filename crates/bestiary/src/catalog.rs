@@ -1,11 +1,5 @@
+use super::{BestiaryError, PetCatalogService, PetQueryService, PetRepository, PetSpecies};
 use std::collections::HashMap;
-use std::path::Path;
-
-use rusqlite::Connection;
-
-use super::{
-    BestiaryError, NrcRepository, PetCatalogService, PetQueryService, PetRepository, PetSpecies,
-};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PetCatalog {
@@ -32,17 +26,6 @@ impl PetCatalog {
             species_by_id,
             species_by_name,
         }
-    }
-
-    pub fn from_nrc_bundle(bundle_root: impl AsRef<Path>) -> Result<Self, BestiaryError> {
-        NrcRepository::load_catalog_from_bundle(bundle_root)
-    }
-
-    pub fn from_connection(
-        connection: &Connection,
-        icons_dir: Option<&Path>,
-    ) -> Result<Self, BestiaryError> {
-        NrcRepository::load_catalog_from_connection(connection, icons_dir)
     }
 
     pub fn species(&self) -> &[PetSpecies] {

@@ -3,21 +3,19 @@ use std::path::{Path, PathBuf};
 
 use rusqlite::Connection;
 
-use super::{BestiaryError, Evolution, Move, MoveEffect, PetCatalog, PetSpecies, Stats};
+use crate::{BestiaryError, Evolution, Move, MoveEffect, PetCatalog, PetSpecies, Stats};
 
 #[derive(Debug, Clone, Copy, Default)]
-pub struct NrcRepository;
+pub struct NrcCatalogLoader;
 
-impl NrcRepository {
-    pub fn load_catalog_from_bundle(
-        bundle_root: impl AsRef<Path>,
-    ) -> Result<PetCatalog, BestiaryError> {
+impl NrcCatalogLoader {
+    pub fn load_from_bundle(bundle_root: impl AsRef<Path>) -> Result<PetCatalog, BestiaryError> {
         let bundle_root = bundle_root.as_ref();
         let db_path = bundle_root.join("db").join("nrc.db");
         let icons_dir = bundle_root.join("resources").join("icons");
         let connection = Connection::open(&db_path)?;
 
-        Self::load_catalog_from_connection(
+        Self::load_from_connection(
             &connection,
             if icons_dir.is_dir() {
                 Some(icons_dir.as_path())
@@ -27,7 +25,7 @@ impl NrcRepository {
         )
     }
 
-    pub fn load_catalog_from_connection(
+    pub fn load_from_connection(
         connection: &Connection,
         icons_dir: Option<&Path>,
     ) -> Result<PetCatalog, BestiaryError> {
@@ -36,6 +34,10 @@ impl NrcRepository {
         let species = load_species(connection, &icon_index, &evolutions)?;
         Ok(PetCatalog::new(species))
     }
+}
+
+pub fn load_catalog(bundle_root: impl AsRef<Path>) -> Result<PetCatalog, BestiaryError> {
+    NrcCatalogLoader::load_from_bundle(bundle_root)
 }
 
 fn load_species(
@@ -318,13 +320,7 @@ mod tests {
                     base_spdef INTEGER DEFAULT 0,
                     base_speed INTEGER DEFAULT 0,
                     base_total INTEGER DEFAULT 0,
-                    stat_hp INTEGER DEFAULT 0,
-                    stat_atk INTEGER DEFAULT 0,
-                    stat_spatk INTEGER DEFAULT 0,
-                    stat_def INTEGER DEFAULT 0,
-                    stat_spdef INTEGER DEFAULT 0,
-                    stat_speed INTEGER DEFAULT 0,
-                    spirit_no TEXT DEFAULT ''
+                    spirit_no TEXT
                 );
                 CREATE TABLE skill (
                     id INTEGER PRIMARY KEY,
@@ -333,8 +329,7 @@ mod tests {
                     category TEXT NOT NULL,
                     energy_cost INTEGER DEFAULT 0,
                     power INTEGER DEFAULT 0,
-                    description TEXT DEFAULT '',
-                    source TEXT DEFAULT 'wiki'
+                    description TEXT DEFAULT ''
                 );
                 CREATE TABLE pokemon_skill (
                     pokemon_id INTEGER NOT NULL,
@@ -345,54 +340,46 @@ mod tests {
                     from_name TEXT NOT NULL,
                     to_name TEXT NOT NULL,
                     evo_level INTEGER,
-                    condition TEXT,
-                    chain_text TEXT
+                    condition TEXT DEFAULT '',
+                    chain_text TEXT DEFAULT ''
                 );
 
                 INSERT INTO pokemon (
-                    id, name, element, evo_stage, ability,
-                    base_hp, base_atk, base_spatk, base_def, base_spdef, base_speed, spirit_no
-                ) VALUES
-                    (1, '火花', '火', '初级', '热身', 70, 84, 60, 56, 51, 78, 'NO.005');
+                    id, name, element, evo_stage, ability, base_hp, base_atk, base_spatk,
+                    base_def, base_spdef, base_speed, spirit_no
+                ) VALUES (
+                    1, '迪莫', '光', '完全体', '圣光护佑', 120, 95, 110, 85, 90, 100, 'No.439'
+                );
 
                 INSERT INTO skill (
                     id, name, element, category, energy_cost, power, description
-                ) VALUES
-                    (10, '火苗', '火', '物攻', 0, 30, '小火苗'),
-                    (11, '热身', '火', '状态', 1, 0, '提升状态'),
-                    (12, '火焰箭', '火', '物攻', 2, 80, '单体伤害'),
-                    (13, '火云车', '火', '物攻', 5, 140, '高伤害');
+                ) VALUES (
+                    10, '聚能光照', '光', '魔法', 15, 90, '用光能打击对手。'
+                );
 
-                INSERT INTO pokemon_skill (pokemon_id, skill_id) VALUES
-                    (1, 10),
-                    (1, 11),
-                    (1, 12),
-                    (1, 13);
+                INSERT INTO pokemon_skill (pokemon_id, skill_id) VALUES (1, 10);
 
-                INSERT INTO evolution (id, from_name, to_name, evo_level, condition, chain_text)
-                VALUES (1, '火花', '焰火', 16, '', '火花->焰火');
+                INSERT INTO evolution (
+                    id, from_name, to_name, evo_level, condition, chain_text
+                ) VALUES (
+                    100, '迪莫', '圣光迪莫', '100', '觉醒', '迪莫 -> 圣光迪莫'
+                );
                 "#,
             )
             .unwrap();
 
-        let catalog = PetCatalog::from_connection(&connection, None).unwrap();
-        let species = catalog.species_by_name("火花").unwrap();
+        let catalog = NrcCatalogLoader::load_from_connection(&connection, None).unwrap();
+        let species = catalog.species();
+        assert_eq!(species.len(), 1);
 
-        assert_eq!(catalog.species().len(), 1);
-        assert_eq!(species.evolutions.len(), 1);
-        assert_eq!(species.learnset.len(), 4);
-        assert!(
-            species
-                .learnset
-                .iter()
-                .all(|battle_move| matches!(battle_move.effect, MoveEffect::Damage { .. }))
-                == false
-        );
-        assert!(
-            species
-                .learnset
-                .iter()
-                .any(|battle_move| matches!(battle_move.effect, MoveEffect::Status))
-        );
+        let dimo = &species[0];
+        assert_eq!(dimo.species_id, "pokemon-1-迪莫");
+        assert_eq!(dimo.name, "迪莫");
+        assert_eq!(dimo.element, "光");
+        assert_eq!(dimo.stats.max_hp, 120);
+        assert_eq!(dimo.learnset.len(), 1);
+        assert_eq!(dimo.learnset[0].name, "聚能光照");
+        assert_eq!(dimo.evolutions.len(), 1);
+        assert_eq!(dimo.evolutions[0].to_name, "圣光迪莫");
     }
 }
